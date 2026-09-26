@@ -26,7 +26,7 @@ Send - key into a notepad.
 ## Sending
 
 Two inputs, both modes:\
-Straight key - one button. Short press is a dit, longer press is a dah.\
+Straight key - On screen hold, or spacebar on a keyboard. Short press is a dit, longer press is a dah.\
 Paddles - left dit, right dah (swap in Settings).
 
 ## Why Koch

@@ -1,6 +1,5 @@
 import { decodePattern } from './morse.js'
-import { ditMsFromSettings } from './audio.js'
-import { toneOff, toneOn } from './audio.js'
+import { ditMsFromSettings, toneOff, toneOn, unlockAudio } from './audio.js'
 
 export function createKeyer(handlers = {}) {
   let pattern = ''
@@ -93,21 +92,58 @@ export function createKeyer(handlers = {}) {
     }
   }
 
+  function pressStraight() {
+    if (!enabled || straightDownAt) return
+    straightDownAt = performance.now()
+    toneOn()
+  }
+
+  function releaseStraight() {
+    if (!straightDownAt) return
+    const heldMs = performance.now() - straightDownAt
+    straightDownAt = 0
+    toneOff()
+    emit(heldMs < ditMs() * 2 ? '.' : '-')
+  }
+
   function attachStraight(el) {
-    return bindHold(
-      el,
-      () => {
-        straightDownAt = performance.now()
-        toneOn()
-      },
-      () => {
-        if (!straightDownAt) return
-        const heldMs = performance.now() - straightDownAt
-        straightDownAt = 0
-        toneOff()
-        emit(heldMs < ditMs() * 2 ? '.' : '-')
-      },
-    )
+    return bindHold(el, pressStraight, releaseStraight)
+  }
+
+  function typingInField(target) {
+    if (!target || typeof target.closest !== 'function') return false
+    const el = target.closest('input, textarea, select, [contenteditable="true"]')
+    return Boolean(el)
+  }
+
+  function attachSpace(el) {
+    const down = (e) => {
+      if (e.code !== 'Space' && e.key !== ' ') return
+      if (e.repeat) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (typingInField(e.target)) return
+      if (!enabled) return
+      e.preventDefault()
+      if (el) el.dataset.down = 'true'
+      unlockAudio()
+      pressStraight()
+    }
+    const up = (e) => {
+      if (e.code !== 'Space' && e.key !== ' ') return
+      if (!straightDownAt) return
+      e.preventDefault()
+      if (el) el.dataset.down = 'false'
+      releaseStraight()
+    }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', releaseStraight)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', releaseStraight)
+      if (el) el.dataset.down = 'false'
+    }
   }
 
   function attachPaddle(el, kind) {
@@ -141,6 +177,7 @@ export function createKeyer(handlers = {}) {
   return {
     attachStraight,
     attachPaddle,
+    attachSpace,
     reset,
     setEnabled(value) {
       enabled = value
