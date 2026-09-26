@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+html, body, #app {
+  min-height: 100dvh;
+}
+
+button, a, input, select {
+  touch-action: manipulation;
+}
+
+.paddle {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.paddle:active, .paddle[data-down='true'] {
+  transform: scale(0.98);
+}
